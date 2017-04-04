@@ -14,13 +14,11 @@ public class ApproxInference {
     private BayesianNetwork bn;
     private RandomVariable queryVar;
     private Assignment evidence;
-    private int validCount;
 
     public ApproxInference(BayesianNetwork bn, RandomVariable queryVar, Assignment evidence){
         this.bn = bn;
         this.queryVar = queryVar;
         this.evidence = evidence;
-        this.validCount = 0;
     }
 
     protected Distribution rejectionSampling(int limit){
@@ -35,7 +33,6 @@ public class ApproxInference {
         Map<String,Integer> counts = new HashMap<>(vars.size());
         for (int count = 0; count < limit; count++){
             Assignment assignment = copy(evidence);
-//            boolean valid = true;
             for (RandomVariable rv : vars){
                 String name = rv.getName();
 
@@ -43,7 +40,6 @@ public class ApproxInference {
                 assignment.set(rv,new Boolean(true));
 
                 double probability = bn.getProb(rv,assignment);
-
                 Boolean result = getRandResult(probability,random);
 
                 // set rv result to what actually was predicted
@@ -51,7 +47,6 @@ public class ApproxInference {
 
                 // reject contradicting samples
                 if (contradictsEvidence(name,result)){
-//                    valid = false;
                     break;
                 }
 
@@ -61,9 +56,6 @@ public class ApproxInference {
                     counts.put(name,c+1);
                 }
             }
-//            if (valid){
-//                validCount++;
-//            }
         }
         return counts;
     }
@@ -72,22 +64,10 @@ public class ApproxInference {
         Distribution dist = new Distribution();
         double evidenceCount = getCountOfEvidence(counts);
         double queryCount = getCountOfQuery(counts);
-
-        double T = (double)Integer.valueOf(entry.getValue())/(double)validCount;
+        double T = queryCount/evidenceCount;
         double F = 1-T;
         dist.put(queryVar.getName() +" true",round(T,3));
         dist.put(queryVar.getName() +" false",round(F,3));
-
-
-//        for (Map.Entry<String,Integer> entry : counts.entrySet()){
-//            String name = entry.getKey();
-//            if (name.equals(queryVar.getName())){  // only put queryVar in distribution
-//                double T = (double)Integer.valueOf(entry.getValue())/(double)validCount;
-//                double F = 1-T;
-//                dist.put(queryVar.getName() +" true",round(T,3));
-//                dist.put(queryVar.getName() +" false",round(F,3));
-//            }
-//        }
         return dist;
     }
 
@@ -101,14 +81,17 @@ public class ApproxInference {
     }
 
     private double getCountOfEvidence(Map<String, Integer> counts) {
-        double sum = 0;
+        double min = Double.MAX_VALUE;
         for (Map.Entry<String,Integer> entry : counts.entrySet()){
+            double val = entry.getValue();
             String name = entry.getKey();
             if (inEvidence(name)){
-                sum += entry.getValue();
+                if (val < min){
+                    min = val;
+                }
             }
         }
-        return sum;
+        return min;
     }
 
     private Boolean inEvidence(String test) {
@@ -162,29 +145,6 @@ public class ApproxInference {
         bd = bd.setScale(places, RoundingMode.HALF_UP);
         return bd.doubleValue();
     }
-
-
-//    private double getProb(RandomVariable rv, Assignment assignment) {
-
-//        BayesianNetwork.Node node = bn.getNodeForVariable(rv);
-//
-//        if (node.parents.isEmpty()){  // if it's a root node, use the prior
-//            String priorStr = node.cpt.toString();
-//            priorStr = priorStr.substring(7,priorStr.length());
-//            double prior = Double.parseDouble(priorStr.split("\n")[0]);
-//            return prior;
-//
-//        } else {                      // otherwise use CPTs given values of parent nodes
-//
-//            double probability = bn.getProb(rv,assignment);
-//
-//
-//
-//            System.out.println(node);
-//            return -1;
-//        }
-
-//    }
 
 
 }
