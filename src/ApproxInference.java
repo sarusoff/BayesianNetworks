@@ -33,6 +33,7 @@ public class ApproxInference {
         Map<String,Integer> counts = new HashMap<>(vars.size());
         for (int count = 0; count < limit; count++){
             Assignment assignment = copy(evidence);
+            boolean valid = true;
             for (RandomVariable rv : vars){
                 String name = rv.getName();
 
@@ -47,17 +48,28 @@ public class ApproxInference {
 
                 // reject contradicting samples
                 if (contradictsEvidence(name,result)){
+                    valid = false;
                     break;
                 }
-
-                // increment count
-                if (result == true){
-                    int c = (counts.containsKey(name)) ? counts.get(name) : 0;
-                    counts.put(name,c+1);
-                }
+            }
+            // increment count if valid is true
+            if (valid == true){
+                updateCounts(assignment,counts);
             }
         }
         return counts;
+    }
+
+    private void updateCounts(Assignment assignment, Map<String, Integer> counts) {
+        for (Map.Entry<RandomVariable, Object> entry : assignment.entrySet()){
+            boolean value = Boolean.parseBoolean(entry.getValue().toString());
+
+            if (value == true){
+                String name = entry.getKey().getName();
+                int c = (counts.containsKey(name)) ? counts.get(name) : 0;
+                counts.put(name,c+1);
+            }
+        }
     }
 
     /**
