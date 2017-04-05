@@ -189,7 +189,7 @@ public class BayesianNetwork {
      * Return the RandomVariables in this BayesianNetwork as a List.
      * Current implementation uses an ArrayList for this, and the order of
      * the variables will be the same as the order they were added
-     * to the nextwork.
+     * to the network.
      */
     public List<RandomVariable> getVariableList() {
 	List<RandomVariable> vars = new ArrayList<RandomVariable>(nodes.size());

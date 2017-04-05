@@ -1,17 +1,16 @@
+package exactinference;
+
 import bn.core.Assignment;
 import bn.core.BayesianNetwork;
 import bn.core.Distribution;
 import bn.core.RandomVariable;
+import bn.util.Utils;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Created by danielsaltz on 4/3/17.
- */
+
 public class ExactInference {
     private BayesianNetwork bn;
     private RandomVariable queryVar;
@@ -54,7 +53,7 @@ public class ExactInference {
             double sum = 0.0;
             for (Object domain : y.getDomain()){ // marginalize
 
-                List<RandomVariable> newVars = copy(vars);
+                List<RandomVariable> newVars = shallowCopy(vars);
                 newVars = remove(y,newVars);
 
                 Assignment newE = e.copy();
@@ -73,19 +72,16 @@ public class ExactInference {
         dist.normalize();
         Distribution newDist = new Distribution();
         for (Map.Entry<Object, Double> entry : dist.entrySet()){
-            BigDecimal bd = new BigDecimal(entry.getValue());
-            bd = bd.setScale(3, RoundingMode.HALF_UP);
-            newDist.put(entry.getKey(),bd.doubleValue());
+            newDist.put(entry.getKey(), Utils.round(entry.getValue(),3));
         }
         return newDist;
     }
-
 
     /**
      * Returns a shallow copy of this List<RandomVariable> instance: the
      * values themselves are not cloned.
      */
-    private List<RandomVariable> copy(List<RandomVariable> old) {
+    private List<RandomVariable> shallowCopy(List<RandomVariable> old) {
         List<RandomVariable> newCopy = new ArrayList<>();
         for (RandomVariable rv : old){
             newCopy.add(rv);

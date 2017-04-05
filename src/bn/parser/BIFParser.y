@@ -224,7 +224,7 @@ import java.util.*;
 	trace("defineProbability: " + variableNames);
 	if (network != null) {
 	    int nvars = variableNames.size();
-	    // TestExactInference variable
+	    // exactinference.TestExactInference variable
 	    String varName = variableNames.get(0);
 	    RandomVariable var = network.getVariableByName(varName);
 	    if (var == null) {

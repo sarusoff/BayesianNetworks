@@ -1,3 +1,5 @@
+package approximateinference;
+
 import bn.core.*;
 import bn.parser.BIFParser;
 import bn.parser.XMLBIFParser;
@@ -9,10 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Map;
 
-/**
- * Created by danielsaltz on 4/3/17.
- */
-public class TestExactInference {
+public class TestApproxInference {
 
     public static void main(String[] args){
 
@@ -22,7 +21,7 @@ public class TestExactInference {
         if (args.length < 4 || args.length % 2 != 0){
             System.err.println("You did not enter the correct number of command line arguments.");
             System.err.println("Please execute this program in the following format: " +
-                    "java TestExactInference <example.xml> <Query variable> <Evidence variable> <evidence value>...");
+                    "java exactinference.TestExactInference <example.xml> <Query variable> <Evidence variable> <evidence value>...");
             System.exit(0);
         }
 
@@ -43,8 +42,9 @@ public class TestExactInference {
         RandomVariable queryVar = new RandomVariable(queryVarName,booleanDomain);
 
         // run algorithm
-        ExactInference exactInference = new ExactInference(bn,queryVar,evidence);
-        Distribution result = exactInference.run();
+        int limit = 100000;
+        ApproxInference approxInference = new ApproxInference(bn,queryVar,evidence);
+        Distribution result = approxInference.rejectionSampling(limit);
 
         // output results
         for (Map.Entry<Object,Double> entry : result.entrySet()){
