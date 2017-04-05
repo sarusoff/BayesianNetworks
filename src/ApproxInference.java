@@ -36,14 +36,14 @@ public class ApproxInference {
             for (RandomVariable rv : vars){
                 String name = rv.getName();
 
-                // set the rv to true so that the variable's prior is used
-                assignment.set(rv,new Boolean(true));
+                // set the rv to be true so that the variable's prior is used
+                set(assignment,rv,true);
 
                 double probability = bn.getProb(rv,assignment);
                 Boolean result = getRandResult(probability,random);
 
                 // set rv result to what actually was predicted
-                assignment.set(rv,result);
+                set(assignment,rv,result);
 
                 // reject contradicting samples
                 if (contradictsEvidence(name,result)){
@@ -58,6 +58,22 @@ public class ApproxInference {
             }
         }
         return counts;
+    }
+
+    /**
+     * This method is necessary in order to overwrite any evidence variables
+     * without adding duplicate entries of the same variable to the Assignment
+     */
+    private void set(Assignment assignment, RandomVariable test, Boolean result) {
+        for (RandomVariable rv : assignment.variableSet()){
+            if (rv.getName().equals(test.getName())){
+                assignment.set(rv,result);
+                return;
+            }
+        }
+
+        // it's not in the assignment, so add a new entry
+        assignment.set(test,result);
     }
 
     private Distribution getDistributionOfQueryVar(Map<String, Integer> counts) {
