@@ -9,6 +9,8 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Map;
 
 /**
@@ -30,9 +32,24 @@ public abstract class Inferencer {
 	 * that is ultimately returned by the ask() method
 	 */
 	protected static void printResults(Distribution result){
+		int count = 0;
+		System.out.print("{");
 		for (Map.Entry<Object,Double> entry : result.entrySet()){
-			System.out.println(entry.getKey() + " : " + entry.getValue());
+			System.out.print(entry.getKey() + "=" + round(entry.getValue()));
+			count++;
+			if (count != result.size()){
+				System.out.print(", ");
+			}
 		}
+		System.out.println("}");
+	}
+
+	/**
+	 * Rounds the given number to 10 digits
+	 */
+	private static double round(double num){
+		BigDecimal bd = new BigDecimal(num);
+		return bd.setScale(10, RoundingMode.HALF_UP).doubleValue();
 	}
 
 	/**
@@ -40,26 +57,29 @@ public abstract class Inferencer {
 	 */
 	protected static BayesianNetwork getBayesianNetworkFromFile(String testFile) {
 		BayesianNetwork bn = null;
-		String path = "src/bn/examples/";
 		try {
 			if (testFile.endsWith(".bif")){
-				BIFParser parser = new BIFParser(new FileInputStream(path+testFile));
+				BIFParser parser = new BIFParser(new FileInputStream(testFile));
 				bn = parser.parseNetwork();
 			} else if (testFile.endsWith(".xml")){
 				XMLBIFParser parser = new XMLBIFParser();
-				bn = parser.readNetworkFromFile(path+testFile);
+				bn = parser.readNetworkFromFile(testFile);
 			} else {
 				System.err.println("Please enter a .xml or .bif input file");
 				System.exit(0);
 			}
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
+			System.exit(0);
 		} catch (IOException e) {
 			e.printStackTrace();
+			System.exit(0);
 		} catch (SAXException e) {
 			e.printStackTrace();
+			System.exit(0);
 		} catch (ParserConfigurationException e) {
 			e.printStackTrace();
+			System.exit(0);
 		}
 		return bn;
 	}
@@ -98,5 +118,7 @@ public abstract class Inferencer {
 		}
 		return false;
 	}
+
+
 
 }

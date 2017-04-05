@@ -45,14 +45,13 @@ public class ExactInferencer extends Inferencer {
      * Exits the program if an illogical number of arguments is found.
      */
     protected static void ensureEnoughArgs(String[] args){
-        if (args.length < 4 || args.length % 2 != 0){
+        if (args.length < 2 || args.length % 2 != 0){
             System.err.println("You did not enter the correct number of command line arguments.");
             System.err.println("Please execute this program in the following format: " +
-                    "java bn.inference.TestExactInference <samples> <example.xml> <Query variable> <Evidence variable> <evidence value>...");
+                    "java bn.inference.TestExactInference <example.xml> <Query variable> <Evidence variable> <evidence value>...");
             System.exit(0);
         }
     }
-
 
     @Override
     protected Distribution ask(BayesianNetwork bn, RandomVariable X, Assignment e) {

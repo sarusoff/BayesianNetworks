@@ -52,7 +52,7 @@ public class ApproxInferencer extends Inferencer {
      * Exits the program if an illogical number of arguments is found.
      */
     protected static void ensureEnoughArgs(String[] args){
-        if (args.length < 5 || args.length % 2 == 0){
+        if (args.length < 3 || args.length % 2 == 0){
             System.err.println("You did not enter the correct number of command line arguments.");
             System.err.println("Please execute this program in the following format: " +
                     "java bn.inference.TestExactInference <samples> <example.xml> <Query variable> <Evidence variable> <evidence value>...");
@@ -147,8 +147,8 @@ public class ApproxInferencer extends Inferencer {
         double queryCount = getCountOfQueryVariable(X,counts);
         double T = queryCount/evidenceCount;
         double F = 1-T;
-        dist.put(X.getName() +" true", T);
-        dist.put(X.getName() +" false", F);
+        dist.put("true", T);
+        dist.put("false", F);
         return dist;
     }
 

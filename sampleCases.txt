@@ -1,0 +1,5 @@
+aima-alarm.xml B J true M false
+aima-wet-grass.xml C S false R true W true
+aima-wet-grass.xml S C false
+dog-problem.xml hear-bark bowel-problem true family-out true
+dog-problem.xml dog-out hear-bark true
