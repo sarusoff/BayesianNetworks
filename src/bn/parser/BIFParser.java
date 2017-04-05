@@ -1432,7 +1432,7 @@ public class BIFParser
 	trace("defineProbability: " + variableNames);
 	if (network != null) {
 	    int nvars = variableNames.size();
-	    // exactinference.TestExactInference variable
+	    // bn.inference.TestExactInference variable
 	    String varName = variableNames.get(0);
 	    RandomVariable var = network.getVariableByName(varName);
 	    if (var == null) {

@@ -1,10 +1,6 @@
-package approximateinference;
+package bn.inference;
 
-import bn.core.Assignment;
-import bn.core.BayesianNetwork;
-import bn.core.Distribution;
-import bn.core.RandomVariable;
-import bn.util.Utils;
+import bn.core.*;
 
 import java.util.HashMap;
 import java.util.List;
@@ -12,28 +8,64 @@ import java.util.Map;
 import java.util.Random;
 
 
-public class ApproxInference {
-    private BayesianNetwork bn;
-    private RandomVariable queryVar;
-    private Assignment evidence;
+public class ApproxInferencer extends Inferencer {
+    private int limit;
 
-    public ApproxInference(BayesianNetwork bn, RandomVariable queryVar, Assignment evidence){
-        this.bn = bn;
-        this.queryVar = queryVar;
-        this.evidence = evidence;
+    public ApproxInferencer(int limit) {
+        this.limit = limit;
+    }
+
+
+    /**
+     * Parses the command line arguments to run a test
+     */
+    public static void main(String[] args){
+
+        ensureEnoughArgs(args);
+
+        // read command line arguments
+        int limit = Integer.parseInt(args[0]);
+        String testFile = args[1];
+        String queryVarName =  args[2];
+
+        // get BayesianNetwork from file
+        BayesianNetwork bn = getBayesianNetworkFromFile(testFile);
+
+        // create boolean domain
+        Domain booleanDomain = new Domain();
+        booleanDomain.add("true");
+        booleanDomain.add("false");
+
+        // get evidence and query variable
+        Assignment e = getEvidenceFromArgs(args,booleanDomain,3);
+        RandomVariable X = new RandomVariable(queryVarName,booleanDomain);
+
+        // run algorithm
+        ApproxInferencer approxInference = new ApproxInferencer(limit);
+        Distribution result = approxInference.ask(bn,X,e);
+
+        printResults(result);
     }
 
     /**
-     * Calls the necessary private methods to return a normalized probability
-     * distribution of the query variable given the evidence. Performs the number
-     * of samples that is passed in as a parameter.
+     * Checks to make sure there are a valid number of arguments.
+     * Exits the program if an illogical number of arguments is found.
      */
+    protected static void ensureEnoughArgs(String[] args){
+        if (args.length < 5 || args.length % 2 == 0){
+            System.err.println("You did not enter the correct number of command line arguments.");
+            System.err.println("Please execute this program in the following format: " +
+                    "java bn.inference.TestExactInference <samples> <example.xml> <Query variable> <Evidence variable> <evidence value>...");
+            System.exit(0);
+        }
+    }
 
-    protected Distribution rejectionSampling(int limit){
+    @Override
+    public Distribution ask(BayesianNetwork bn, RandomVariable X, Assignment e) {
         Random random = new Random();
         List<RandomVariable> vars = bn.getVariableListTopologicallySorted();
-        Map<String,Integer> counts = getSampleCounts(random,vars,limit);
-        Distribution dist = getDistributionOfQueryVar(counts);
+        Map<String,Integer> counts = getSampleCounts(random,vars,e,bn);
+        Distribution dist = getDistributionOfQueryVar(e,X,counts);
         dist.normalize();
         return dist;
     }
@@ -42,10 +74,10 @@ public class ApproxInference {
      * Returns a Map containing each RandomVariable's String value mapping
      * to the number of times that the variable was true given the evidence.
      */
-    private Map<String,Integer> getSampleCounts(Random random, List<RandomVariable> vars, int limit) {
+    private Map<String,Integer> getSampleCounts(Random random, List<RandomVariable> vars, Assignment e, BayesianNetwork bn) {
         Map<String,Integer> counts = new HashMap<>(vars.size());
         for (int count = 0; count < limit; count++){
-            Assignment assignment = shallowCopy(evidence);
+            Assignment assignment = shallowCopy(e);
             boolean valid = true;
             for (RandomVariable rv : vars){
                 String name = rv.getName();
@@ -60,7 +92,7 @@ public class ApproxInference {
                 set(assignment,rv,result);
 
                 // reject contradicting samples
-                if (contradictsEvidence(name,result)){
+                if (contradictsEvidence(e,name,result)){
                     valid = false;
                     break;
                 }
@@ -106,42 +138,42 @@ public class ApproxInference {
         assignment.set(var,value);
     }
 
-
-    private Distribution getDistributionOfQueryVar(Map<String, Integer> counts) {
+    /**
+     * Returns the Distribution associated with the query variable X, given the counts
+     */
+    private Distribution getDistributionOfQueryVar(Assignment e, RandomVariable X, Map<String, Integer> counts) {
         Distribution dist = new Distribution();
-        double evidenceCount = getCountOfEvidence(counts);
-        double queryCount = getCountOfQueryVariable(counts);
+        double evidenceCount = getCountOfEvidence(e,counts);
+        double queryCount = getCountOfQueryVariable(X,counts);
         double T = queryCount/evidenceCount;
         double F = 1-T;
-        dist.put(queryVar.getName() +" true", Utils.round(T,3));
-        dist.put(queryVar.getName() +" false",Utils.round(F,3));
+        dist.put(X.getName() +" true", T);
+        dist.put(X.getName() +" false", F);
         return dist;
     }
-
 
     /**
      * Returns the count associated with the query variable
      */
-    private Double getCountOfQueryVariable(Map<String, Integer> counts) {
+    private Double getCountOfQueryVariable(RandomVariable X, Map<String, Integer> counts) {
         for (Map.Entry<String,Integer> entry : counts.entrySet()){
-            if (queryVar.getName().equals(entry.getKey())){
+            if (X.getName().equals(entry.getKey())){
                 return new Double(entry.getValue());
             }
         }
-        System.err.println("An error occurred in method getCountOfQueryVariable()");
-        return null;
+        return new Double(0);
     }
 
     /**
      * Returns the smallest count of any evidence variable. Intuitively,
      * this represents the probability that all evidence variables are true
      */
-    private double getCountOfEvidence(Map<String, Integer> counts) {
+    private double getCountOfEvidence(Assignment e, Map<String, Integer> counts) {
         double min = Double.MAX_VALUE;
         for (Map.Entry<String,Integer> entry : counts.entrySet()){
             double val = entry.getValue();
             String name = entry.getKey();
-            if (inEvidence(name)){
+            if (inEvidence(name,e)){
                 if (val < min){
                     min = val;
                 }
@@ -151,24 +183,11 @@ public class ApproxInference {
     }
 
     /**
-     * Returns true if the given String representing a variable
-     * exists in the evidence instance
-     */
-    private Boolean inEvidence(String test) {
-        for (RandomVariable rv : evidence.variableSet()){
-            if (test.equals(rv.getName())){
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
      * Checks to see if the given variable name and its corresponding
      * Boolean result contradict that variable's assignment in the evidence
      */
-    private boolean contradictsEvidence(String name, Boolean result) {
-        for (Map.Entry<RandomVariable, Object> entry : evidence.entrySet()){
+    private boolean contradictsEvidence(Assignment e, String name, Boolean result) {
+        for (Map.Entry<RandomVariable, Object> entry : e.entrySet()){
             if (entry.getKey().getName().equals(name)){ // if the name is in the evidence
                 if (result != Boolean.valueOf(entry.getValue().toString())){ // if it isn't equal to the evidence value
                     return true;
@@ -178,6 +197,10 @@ public class ApproxInference {
         return false;
     }
 
+    /**
+     * Returns true if the randomly generated number is below the given
+     * probability, otherwise returning false.
+     */
     private boolean getRandResult(double probability, Random random) {
         double randNum = random.nextDouble();
         return randNum < probability;
@@ -194,7 +217,5 @@ public class ApproxInference {
         }
         return newCopy;
     }
-
-
 
 }
